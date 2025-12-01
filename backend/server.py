@@ -28,17 +28,7 @@ async def lifespan(app: FastAPI):
     # Код, выполняемый при запуске
     init_db()
     # Добавление начальных данных, если база пуста
-    db = next(get_db())
-    if db.query(MasterDB).count() == 0:
-        masters = [
-            MasterDB(name="Анна Смирнова", color="pink"),
-            MasterDB(name="Мария Кузнецова", color="purple"),
-            MasterDB(name="Елена Попова", color="blue"),
-            MasterDB(name="Ольга Соколова", color="green")
-        ]
-        db.add_all(masters)
-        db.commit()
-    
+
     yield  # Здесь приложение работает
     
     # Код, выполняемый при завершении работы
@@ -67,7 +57,7 @@ async def health_check():
 @app.get("/api/masters", response_model=List[Master])
 async def get_masters(db: Session = Depends(get_db)):
     masters = db.query(MasterDB).all()
-    return [{"id": str(m.id), "name": m.name, "color": m.color} for m in masters]
+    return [{"id": str(m.id), "name": m.name, "color": m.color, "role": m.role} for m in masters]
 
 
 @app.get("/api/masters/{master_id}/appointments")
@@ -464,7 +454,8 @@ async def telegram_auth(
         "master": {
             "id": str(master.id),
             "name": master.name,
-            "color": master.color
+            "color": master.color,
+            "role": master.role
         }
     }
 
@@ -493,7 +484,8 @@ async def register_master(
             "master": {
                 "id": str(existing_master.id),
                 "name": existing_master.name,
-                "color": existing_master.color
+                "color": existing_master.color,
+                "role": existing_master.role
             }
         }
     
@@ -501,7 +493,8 @@ async def register_master(
     new_master = MasterDB(
         name=name,
         color="blue",  # Можно сделать выбор цвета позже
-        telegram_id=telegram_id
+        telegram_id=telegram_id,
+        role="master"
     )
     
     db.add(new_master)
@@ -522,7 +515,8 @@ async def register_master(
         "master": {
             "id": str(new_master.id),
             "name": new_master.name,
-            "color": new_master.color
+            "color": new_master.color,
+            "role": new_master.role
         }
     }
 

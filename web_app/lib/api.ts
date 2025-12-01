@@ -20,6 +20,7 @@ export type Master = {
   id: string
   name: string
   color: string
+  role?: string 
 }
 
 export function getMasterId(): string | null {

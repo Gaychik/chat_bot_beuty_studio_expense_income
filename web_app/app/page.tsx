@@ -6,9 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
 import { 
-  formatTimeRange,
-   getStatusColor, 
-   getStatusLabel,
    type Appointment,
     setAuthToken, 
     Master, 
@@ -70,7 +67,7 @@ const authenticateUser = async (telegramId: number, firstName: string) => {
 
 
   
-  return (
+    return (
     <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
       {/* Header */}
       <header className="bg-black text-white p-6 shadow-lg">
@@ -122,15 +119,18 @@ const authenticateUser = async (telegramId: number, firstName: string) => {
             </Button>
           </Link>
 
-          <Link href="/admin" className="block">
-            <Button
-              variant="outline"
-              className="w-full h-16 border-2 border-black text-black hover:bg-gray-100 text-lg font-semibold bg-transparent"
-            >
-              <Users className="mr-2 h-6 w-6" />
-              Панель администратора
-            </Button>
-          </Link>
+          {/* Показываем кнопку админки только если мастер имеет роль администратора */}
+          {currentMaster?.role === 'admin' && (
+            <Link href="/admin" className="block">
+              <Button
+                variant="outline"
+                className="w-full h-16 border-2 border-black text-black hover:bg-gray-100 text-lg font-semibold bg-transparent"
+              >
+                <Users className="mr-2 h-6 w-6" />
+                Панель администратора
+              </Button>
+            </Link>
+          )}
         </div>
 
        {/* Today's Appointments Preview */}

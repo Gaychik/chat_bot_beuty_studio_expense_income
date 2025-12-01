@@ -15,6 +15,7 @@ class MasterDB(Base):
     name = Column(String, nullable=False)
     color = Column(String, nullable=False)
     telegram_id = Column(Integer, unique=True, nullable=True) 
+    role = Column(String, default="master")
     appointments = relationship("AppointmentDB", back_populates="master")
 
 class AppointmentDB(Base):
@@ -69,6 +70,7 @@ class Appointment(AppointmentBase):
 class MasterBase(BaseModel):
     name: str
     color: str
+    role: str = "master"  
 
 class MasterCreate(MasterBase):
     pass
