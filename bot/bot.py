@@ -14,7 +14,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEB_APP_URL = os.getenv("WEB_APP_URL")
 BACKEND_URL = os.getenv("BACKEND_URL")
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+
 
 # Настройка логирования
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)

@@ -44,20 +44,15 @@ export async function getMasters(): Promise<Master[]> {
     return response.json();
 }
 
-// Получить записи для конкретного мастера
-export async function getAppointments(masterId: string, date?: string): Promise<Appointment[]> {
-  const url = new URL(`${API_URL}/api/appointments/${masterId}`)
-  if (date) url.searchParams.append("date", date)
 
-  const response = await authenticatedFetch(url.toString())
-  if (!response.ok) throw new Error("Failed to fetch appointments")
-  return response.json()
-}
-
-
-export async function getAllAppointments(date?: string, masterId?: string): Promise<Record<string, Appointment[]>> {
+export async function getAppointments(date?: string): Promise<Record<string, Appointment[]>> {
   const url = new URL(`${API_URL}/api/appointments`)
   if (date) url.searchParams.append("date", date)
+  const masterId = getMasterId();
+  
+  if (!masterId) {
+    throw new Error("Master ID not found. Please authenticate first.");
+  }
   if (masterId) url.searchParams.append("master_id", masterId)
     
 
@@ -328,14 +323,9 @@ export function getAuthToken(): string | null {
 
 export async function getTodayAppointments(): Promise<Appointment[]> {
   const today = new Date().toISOString().split('T')[0]
-  // Получаем ID текущего мастера из localStorage
-  const masterId = getMasterId();
   
-  if (!masterId) {
-    throw new Error("Master ID not found");
-  }
   
-  const data = await getAllAppointments(today, masterId)
+  const data = await getAppointments(today)
   return Object.values(data).flat()
 }
 

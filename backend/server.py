@@ -1,18 +1,19 @@
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
 from typing import Optional, Dict, List,Literal
 from datetime import datetime,timedelta
 import os
 from dotenv import load_dotenv
-import jwt 
+import jwt
 from middleware import verify_token
 from database import JWT_SECRET_KEY, get_db, init_db
 # Импорт моделей и функций из новых модулей
 from models import (
     Appointment, AppointmentCreate, AppointmentUpdate, 
     Master, CompleteAppointmentRequest, Stats, Payment,
-    AppointmentDB, MasterDB
+    AppointmentDB, MasterDB, MasterRegisterRequest
 )
 
 
@@ -95,17 +96,16 @@ async def get_appointments(
     return result
 
 @app.get("/api/appointments")
-async def get_all_appointments(
+async def get_appointments(
     date: Optional[str] = Query(None, description="Дата в формате YYYY-MM-DD"),
     master_id: Optional[str] = Query(None, description="ID мастера"),
-    auth_data: dict = Depends(verify_token),
     db: Session = Depends(get_db)
 ):
     result = {}
     
     # Получение всех мастеров
     masters = db.query(MasterDB).all()
-    master_id = auth_data.get("master_id") if auth_data else None
+    #master_id = auth_data.get("master_id") if auth_data else None
 
     for master in masters:
         if master_id and str(master.id) != master_id:
@@ -141,20 +141,31 @@ async def get_all_appointments(
 async def get_appointments_range(
     start_date: str = Query(..., description="Начальная дата в формате YYYY-MM-DD"),
     end_date: str = Query(..., description="Конечная дата в формате YYYY-MM-DD"),
+    master_id: Optional[str] = Query(None, description="ID мастера (опционально)"),
     db: Session = Depends(get_db)
 ):
     result = {}
     
     try:
-        start = datetime.strptime(start_date, "%Y-%m-%d")
-        end = datetime.strptime(end_date, "%Y-%m-%d")
+        # Проверяем формат дат
+        datetime.strptime(start_date, "%Y-%m-%d")
+        datetime.strptime(end_date, "%Y-%m-%d")
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
     
-    appointments = db.query(AppointmentDB).filter(
-        AppointmentDB.date >= start,
-        AppointmentDB.date <= end
-    ).all()
+    # Формируем запрос с учетом master_id если он передан
+    query = db.query(AppointmentDB)
+    
+    if master_id:
+        query = query.filter(AppointmentDB.master_id == int(master_id))
+    
+    # Фильтруем по диапазону дат (сравниваем строки, а не datetime)
+    query = query.filter(
+        AppointmentDB.date >= start_date,
+        AppointmentDB.date <= end_date
+    )
+    
+    appointments = query.all()
     
     for apt in appointments:
         date_key = apt.date
@@ -428,46 +439,54 @@ async def get_stats_range(
     }
 
 
-@app.post("/api/auth/telegram")
-async def telegram_auth(
-    telegram_id: int,
-    db: Session = Depends(get_db)
-):
-    # Ищем мастера по telegram_id
-    master = db.query(MasterDB).filter(MasterDB.telegram_id == telegram_id).first()
+# @app.post("/api/auth/telegram")
+# async def telegram_auth(
+#     telegram_id: int,
+#     db: Session = Depends(get_db)
+# ):
+#     try:
+#         # Ищем мастера по telegram_id
+#         master = db.query(MasterDB).filter(MasterDB.telegram_id == telegram_id).first()
+#     except OperationalError as e:
+#         raise HTTPException(status_code=503, detail="Database connection error. Please try again.")
     
-    if not master:
-        raise HTTPException(status_code=404, detail="Master not found")
+#     if not master:
+#         raise HTTPException(status_code=404, detail="Master not found")
     
-    # Генерируем JWT токен
-    payload = {
-        "master_id": master.id,
-        "telegram_id": telegram_id,
-        "exp": datetime.now() + timedelta(hours=24),
-        "iat": datetime.now()
-    }
+#     # Генерируем JWT токен
+#     payload = {
+#         "master_id": master.id,
+#         "telegram_id": telegram_id,
+#         "exp": datetime.now() + timedelta(hours=24),
+#         "iat": datetime.now()
+#     }
     
-    token = jwt.encode(payload, JWT_SECRET_KEY, algorithm="HS256")
+#     token = jwt.encode(payload, JWT_SECRET_KEY, algorithm="HS256")
     
-    return {
-        "token": token,
-        "master": {
-            "id": str(master.id),
-            "name": master.name,
-            "color": master.color,
-            "role": master.role
-        }
-    }
+#     return {
+#         "token": token,
+#         "master": {
+#             "id": str(master.id),
+#             "name": master.name,
+#             "color": master.color,
+#             "role": master.role
+#         }
+#     }
 
 
 @app.post("/api/masters/register")
 async def register_master(
-    telegram_id: int,
-    name: str,
+    request: MasterRegisterRequest,
     db: Session = Depends(get_db)
 ):
-    # Проверяем, существует ли уже мастер с таким telegram_id
-    existing_master = db.query(MasterDB).filter(MasterDB.telegram_id == telegram_id).first()
+    telegram_id = request.telegram_id
+    name = request.name
+    
+    try:
+        # Проверяем, существует ли уже мастер с таким telegram_id
+        existing_master = db.query(MasterDB).filter(MasterDB.telegram_id == telegram_id).first()
+    except OperationalError as e:
+        raise HTTPException(status_code=503, detail="Database connection error. Please try again.")
     
     if existing_master:
         # Если мастер уже существует, возвращаем его данные
@@ -497,9 +516,13 @@ async def register_master(
         role="master"
     )
     
-    db.add(new_master)
-    db.commit()
-    db.refresh(new_master)
+    try:
+        db.add(new_master)
+        db.commit()
+        db.refresh(new_master)
+    except OperationalError as e:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Database connection error. Please try again.")
     
     # Генерируем токен
     payload = {

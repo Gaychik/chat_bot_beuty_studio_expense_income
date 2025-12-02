@@ -1,11 +1,11 @@
 from typing import Optional
 from fastapi import Depends, Header, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
 import jwt
 
 from database import JWT_SECRET_KEY, get_db
-from models import Master as MasterDB
-
+from models import MasterDB
 
 
 async def verify_token(
@@ -23,10 +23,18 @@ async def verify_token(
         if not master_id:
             raise HTTPException(status_code=401, detail="Invalid token")
             
-        master = db.query(MasterDB).filter(MasterDB.id == master_id).first()
+        # Попытка получить мастера с обработкой ошибок подключения
+        try:
+            master = db.query(MasterDB).filter(MasterDB.id == master_id).first()
+        except OperationalError as e:
+            # Если ошибка подключения, попробуем создать новую сессию
+            raise HTTPException(status_code=503, detail="Database connection error. Please try again.")
+            
         if not master:
             raise HTTPException(status_code=401, detail="Master not found")
             
         return {"master_id": master_id, "master": master}
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+    except OperationalError as e:
+        raise HTTPException(status_code=503, detail="Database connection error. Please try again.")

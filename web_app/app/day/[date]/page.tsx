@@ -11,7 +11,7 @@ import Link from "next/link"
 import { AppointmentCard } from "@/components/appointment-card"
 import { AppointmentDialog } from "@/components/appointment-dialog"
 import {
-  getAllAppointments,
+  getAppointments,
   createAppointment,
   updateAppointment,
   completeAppointment,
@@ -42,7 +42,7 @@ export default function DayDetailPage({ params }: { params: Promise<{ date: stri
         setLoading(true)
         setError(null)
 
-        const data = await getAllAppointments(date)
+        const data = await getAppointments(date)
 
         // Объединяем все записи в один массив
         const allAppointments = Object.values(data).flat()
@@ -116,7 +116,7 @@ export default function DayDetailPage({ params }: { params: Promise<{ date: stri
         })
 
         // Перезагружаем список записей
-        const updatedData = await getAllAppointments(date)
+        const updatedData = await getAppointments(date)
         setAppointments(Object.values(updatedData).flat())
         setSelectedSlot(null)
       } else if (editingAppointment) {
@@ -127,7 +127,7 @@ export default function DayDetailPage({ params }: { params: Promise<{ date: stri
         })
 
         // Перезагружаем список записей
-        const updatedData = await getAllAppointments(date)
+        const updatedData = await getAppointments(date)
         setAppointments(Object.values(updatedData).flat())
         setEditingAppointment(null)
       }
@@ -149,7 +149,7 @@ export default function DayDetailPage({ params }: { params: Promise<{ date: stri
       await completeAppointment(masterId, id, payment)
 
       // Перезагружаем список записей
-      const updatedData = await getAllAppointments(date)
+      const updatedData = await getAppointments(date)
       setAppointments(Object.values(updatedData).flat())
       setEditingAppointment(null)
     } catch (err) {
@@ -170,7 +170,7 @@ export default function DayDetailPage({ params }: { params: Promise<{ date: stri
       await cancelAppointment(masterId, id)
 
       // Перезагружаем список записей
-      const updatedData = await getAllAppointments(date)
+      const updatedData = await getAppointments(date)
       setAppointments(Object.values(updatedData).flat())
       setEditingAppointment(null)
     } catch (err) {
@@ -191,7 +191,7 @@ export default function DayDetailPage({ params }: { params: Promise<{ date: stri
       await deleteAppointment(masterId, id)
 
       // Перезагружаем список записей
-      const updatedData = await getAllAppointments(date)
+      const updatedData = await getAppointments(date)
       setAppointments(Object.values(updatedData).flat())
       setEditingAppointment(null)
     } catch (err) {
@@ -224,7 +224,7 @@ export default function DayDetailPage({ params }: { params: Promise<{ date: stri
           await updateAppointment(masterId, draggedAppointment, { time })
 
           // Перезагружаем список записей
-          const updatedData = await getAllAppointments(date)
+          const updatedData = await getAppointments(date)
           setAppointments(Object.values(updatedData).flat())
         } catch (err) {
           console.error("Error moving appointment:", err)

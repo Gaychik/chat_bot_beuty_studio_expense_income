@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import {  getAppointmentsRange } from '@/lib/api'
+import {  getAppointmentsRange, getMasterId } from '@/lib/api'
 type Appointment = {
   id: string
   time: string
@@ -36,9 +36,15 @@ useEffect(() => {
 
       const startDateStr = startDate.toISOString().split('T')[0]
       const endDateStr = endDate.toISOString().split('T')[0]
-
+     // Получаем ID текущего мастера
+      const masterId = getMasterId();
+      if (!masterId) {
+        setError("Не удалось определить мастера. Пожалуйста, авторизуйтесь заново.");
+        setLoading(false);
+        return;
+      } 
       // <CHANGE> Один запрос вместо 28!
-      const allAppointments = await getAppointmentsRange(startDateStr, endDateStr)
+      const allAppointments = await getAppointmentsRange(startDateStr, endDateStr,masterId)
 
       setAppointments(allAppointments)
     } catch (err) {

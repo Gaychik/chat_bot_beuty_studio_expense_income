@@ -35,6 +35,9 @@ class AppointmentDB(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class MasterRegisterRequest(BaseModel):
+    telegram_id: int
+    name: str
 # Pydantic модели для API
 class Payment(BaseModel):
     cash: float = 0

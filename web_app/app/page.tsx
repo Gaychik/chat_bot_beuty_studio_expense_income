@@ -22,9 +22,12 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null)
   // Добавьте состояние для текущего мастера
       const [currentMaster, setCurrentMaster] = useState<Master | null>(null);
-   const [isAuthenticated, setIsAuthenticated] = useState(false);
+   
+   const [isClient, setIsClient] = useState(false);
 
-
+useEffect(() => {
+  setIsClient(true);
+}, []);
 
 const authenticateUser = async (telegramId: number, firstName: string) => {
     try {
@@ -32,7 +35,7 @@ const authenticateUser = async (telegramId: number, firstName: string) => {
         const data = await authenticateViaTelegram(telegramId, firstName);
         setAuthToken(data.token);
         setCurrentMaster(data.master);
-        setIsAuthenticated(true);
+        
         
         setMasterId(data.master.id);
  
@@ -62,7 +65,7 @@ const authenticateUser = async (telegramId: number, firstName: string) => {
                 authenticateUser(user.id, user.first_name);
             }
         }
-}, []);
+}, [isClient]);
 
 
 
