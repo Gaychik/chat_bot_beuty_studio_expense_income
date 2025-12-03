@@ -2,9 +2,7 @@ import os
 import logging
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
-import requests
-import jwt
-import datetime
+
 
 # Загрузка переменных окружения
 from dotenv import load_dotenv
@@ -13,7 +11,7 @@ load_dotenv()
 # Конфигурация
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEB_APP_URL = os.getenv("WEB_APP_URL")
-BACKEND_URL = os.getenv("BACKEND_URL")
+
 
 
 # Настройка логирования
