@@ -19,6 +19,7 @@ import {
   deleteAppointment,
   type Appointment,
   getMasterId,
+  getMasterRole,
 } from "@/lib/api"
 
 export default function DayDetailPage({ params }: { params: Promise<{ date: string }> }) {
@@ -30,9 +31,19 @@ export default function DayDetailPage({ params }: { params: Promise<{ date: stri
   const [draggedAppointment, setDraggedAppointment] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showDelete, setShowDelete] = useState(false)
 
   const parsedDate = new Date(date + "T00:00:00")
   const isValidDate = !isNaN(parsedDate.getTime())
+
+  useEffect(() => {
+    // Удаление доступно только администратору
+    try {
+      setShowDelete(getMasterRole() === "admin")
+    } catch {
+      setShowDelete(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!isValidDate) return
@@ -306,6 +317,7 @@ export default function DayDetailPage({ params }: { params: Promise<{ date: stri
         onComplete={handleCompleteAppointment}
         onCancel={handleCancelAppointment}
         onDelete={handleDeleteAppointment}
+        showDelete={showDelete}
       />
     </div>
   )

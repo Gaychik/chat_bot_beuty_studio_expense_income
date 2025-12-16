@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Получение параметров подключения из переменных окружения
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5433/want_salon")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:keptRfiWlLJgjLeSRRPkOqLncgNZKWsB@caboose.proxy.rlwy.net:17331/railway")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "default-secret-key")
 
 # Создание движка SQLAlchemy с параметрами для более надежного подключения

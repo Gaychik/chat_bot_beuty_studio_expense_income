@@ -61,6 +61,9 @@ export async function getAppointments(date?: string): Promise<Record<string, App
   return response.json()
 }
 
+
+
+
 async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const token = getAuthToken();
     const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -353,3 +356,8 @@ export async function getWeekAppointments(): Promise<Appointment[]> {
   const data = await getAppointmentsRange(startDateStr, endDateStr, masterId)
   return Object.values(data).flat()
 }
+
+
+
+
+

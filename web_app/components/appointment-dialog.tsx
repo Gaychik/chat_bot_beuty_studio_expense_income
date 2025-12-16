@@ -29,6 +29,7 @@ interface AppointmentDialogProps {
   onComplete: (id: string, payment: { cash: number; card: number }) => void
   onCancel: (id: string) => void
   onDelete: (id: string) => void
+  showDelete?: boolean
 }
 
 export function AppointmentDialog({
@@ -39,6 +40,7 @@ export function AppointmentDialog({
   onComplete,
   onCancel,
   onDelete,
+  showDelete = true,
 }: AppointmentDialogProps) {
   const [clientName, setClientName] = useState("")
   const [comment, setComment] = useState("")
@@ -213,7 +215,7 @@ export function AppointmentDialog({
                 </Button>
               )}
 
-              {isEditing && (
+              {isEditing && showDelete && (
                 <Button
                   onClick={handleDelete}
                   variant="outline"

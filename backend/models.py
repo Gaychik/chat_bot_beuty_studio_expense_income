@@ -66,6 +66,7 @@ class Appointment(AppointmentBase):
     status: Literal["scheduled", "completed", "cancelled"] = "scheduled"
 
     payment: Optional[Payment] = None
+    masterId: Optional[str] = None
     
     class Config:
         orm_mode = True

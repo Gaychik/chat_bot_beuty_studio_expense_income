@@ -90,6 +90,7 @@ async def get_appointments(
             "comment": apt.comment or "",
             "status": apt.status,
             "date": apt.date,
+            "masterId": str(apt.master_id),
             "payment": {"cash": apt.cash_payment, "card": apt.card_payment} if apt.status == "completed" else {}
         })
     
@@ -129,6 +130,7 @@ async def get_appointments(
                 "comment": apt.comment or "",
                 "status": apt.status,
                 "date": apt.date,
+                "masterId": str(apt.master_id),
                 "payment": {"cash": apt.cash_payment, "card": apt.card_payment} if apt.status == "completed" else None
             })
         
@@ -180,6 +182,7 @@ async def get_appointments_range(
             "comment": apt.comment or "",
             "status": apt.status,
             "date": apt.date,
+            "masterId": str(apt.master_id),
             "payment": {"cash": apt.cash_payment, "card": apt.card_payment} if apt.status == "completed" else None
         })
     
@@ -220,6 +223,7 @@ async def create_appointment(
         "comment": new_appointment.comment or "",
         "date": new_appointment.date,
         "status": new_appointment.status,
+        "masterId": str(new_appointment.master_id),
         "payment": None
     }
 
@@ -274,6 +278,7 @@ async def update_appointment(
         "comment": apt.comment or "",
         "date": apt.date,
         "status": apt.status,
+        "masterId": str(apt.master_id),
         "payment": {"cash": apt.cash_payment, "card": apt.card_payment} if apt.status == "completed" else None
     }
 
@@ -315,6 +320,7 @@ async def complete_appointment(
         "comment": apt.comment or "",
         "date": apt.date,
         "status": apt.status,
+        "masterId": str(apt.master_id),
         "payment": {"cash": apt.cash_payment, "card": apt.card_payment}
     }
 
@@ -353,6 +359,7 @@ async def cancel_appointment(
         "comment": apt.comment or "",
         "date": apt.date,
         "status": apt.status,
+        "masterId": str(apt.master_id),
         "payment": {"cash": apt.cash_payment, "card": apt.card_payment} if apt.status == "completed" else None  # type: ignore
     }
 
@@ -407,31 +414,39 @@ async def get_stats(db: Session = Depends(get_db)):
 async def get_stats_range(
     start_date: str = Query(..., description="Начальная дата в формате YYYY-MM-DD"),
     end_date: str = Query(..., description="Конечная дата в формате YYYY-MM-DD"),
+    master_id: Optional[str] = Query(None, description="ID мастера (опционально)"),
     db: Session = Depends(get_db)
 ):
     from sqlalchemy import func
+
+    master_id_int: Optional[int] = None
+    if master_id is not None:
+        try:
+            master_id_int = int(master_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid master_id")
+
+    base_filter = [AppointmentDB.date >= start_date, AppointmentDB.date <= end_date]
+    if master_id_int is not None:
+        base_filter.append(AppointmentDB.master_id == master_id_int)
+
     # Подсчет записей в диапазоне дат
-    total_appointments = db.query(AppointmentDB).filter(
-        AppointmentDB.date >= start_date,
-        AppointmentDB.date <= end_date
-    ).count()
-    
+    total_appointments = db.query(AppointmentDB).filter(*base_filter).count()
+
     # Подсчет завершенных записей в диапазоне дат
     completed_appointments = db.query(AppointmentDB).filter(
-        AppointmentDB.date >= start_date,
-        AppointmentDB.date <= end_date,
+        *base_filter,
         AppointmentDB.status == "completed"
     ).count()
-    
+
     # Подсчет общей выручки в диапазоне дат
-    total_revenue = db.query(
-        func.sum(AppointmentDB.cash_payment + AppointmentDB.card_payment)
-    ).filter(
-        AppointmentDB.date >= start_date,
-        AppointmentDB.date <= end_date,
-        AppointmentDB.status == "completed"
-    ).scalar() or 0.0
-    
+    total_revenue = (
+        db.query(func.sum(AppointmentDB.cash_payment + AppointmentDB.card_payment))
+        .filter(*base_filter, AppointmentDB.status == "completed")
+        .scalar()
+        or 0.0
+    )
+
     return {
         "totalAppointments": total_appointments,
         "completedAppointments": completed_appointments,

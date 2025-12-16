@@ -11,6 +11,10 @@ import {
   getMasters,
   getAppointmentsRange,
   getStatsForRange,
+  updateAppointment,
+  completeAppointment,
+  cancelAppointment,
+  deleteAppointment,
   getMasterBackgroundColor,
   getMasterIndicatorColor,
   getMasterBorderColor,
@@ -61,43 +65,49 @@ export default function AdminPage() {
     fetchMasters()
   }, [])
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+  const getRange = () => {
+    let startDate = new Date(selectedDate)
+    let endDate = new Date(selectedDate)
 
-        let startDate = new Date(selectedDate)
-        let endDate = new Date(selectedDate)
-
-        if (viewMode === "week") {
-          const dayOfWeek = startDate.getDay()
-          const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-          startDate.setDate(startDate.getDate() + diff)
-          endDate.setDate(startDate.getDate() + 6)
-        } else if (viewMode === "month") {
-          startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
-          endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0)
-        }
-
-        const startDateStr = startDate.toISOString().split("T")[0]
-        const endDateStr = endDate.toISOString().split("T")[0]
-
-        const appointmentsData = await getAppointmentsRange(startDateStr, endDateStr)
-        setAppointments(appointmentsData)
-
-        const statsData = await getStatsForRange(startDateStr, endDateStr)
-        setStats(statsData)
-      } catch (err) {
-        console.error("Failed to fetch data:", err)
-        setError("Не удалось загрузить данные. Проверь подключение к серверу.")
-      } finally {
-        setLoading(false)
-      }
+    if (viewMode === "week") {
+      const dayOfWeek = startDate.getDay()
+      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+      startDate.setDate(startDate.getDate() + diff)
+      endDate.setDate(startDate.getDate() + 6)
+    } else if (viewMode === "month") {
+      startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
+      endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0)
     }
 
-    fetchData()
-  }, [selectedDate, viewMode])
+    const startDateStr = startDate.toISOString().split("T")[0]
+    const endDateStr = endDate.toISOString().split("T")[0]
+    return { startDateStr, endDateStr }
+  }
+
+  const reloadData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const { startDateStr, endDateStr } = getRange()
+
+      const appointmentsData = await getAppointmentsRange(startDateStr, endDateStr)
+      setAppointments(appointmentsData)
+
+      const statsMasterId = selectedMaster === "all" ? undefined : selectedMaster
+      const statsData = await getStatsForRange(startDateStr, endDateStr, statsMasterId)
+      setStats(statsData)
+    } catch (err) {
+      console.error("Failed to fetch data:", err)
+      setError("Не удалось загрузить данные. Проверь подключение к серверу.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    reloadData()
+  }, [selectedDate, viewMode, selectedMaster])
 
   // ... existing helper functions ...
 
@@ -122,9 +132,11 @@ export default function AdminPage() {
     return days
   }
 
-  const getAppointmentsForDate = (date: Date): Appointment[] => {
+  const getAppointmentsForDate = (date: Date, masterId?: string): Appointment[] => {
     const dateKey = date.toISOString().split("T")[0]
-    return appointments[dateKey] || []
+    const all = appointments[dateKey] || []
+    if (!masterId) return all
+    return all.filter((apt) => String(apt.masterId) === String(masterId))
   }
 
   const changeMonth = (months: number) => {
@@ -175,14 +187,19 @@ export default function AdminPage() {
     }
   }
 
-  const getAppointmentForSlot = (timeSlot: string, date?: Date): Appointment | undefined => {
+  const getAppointmentForSlot = (timeSlot: string, masterId: string, date?: Date): Appointment | undefined => {
     const targetDate = date || selectedDate
     const dateKey = targetDate.toISOString().split("T")[0]
     const dayAppointments = appointments[dateKey] || []
-    return dayAppointments.find((apt) => apt.time === timeSlot)
+    return dayAppointments.find((apt) => apt.time === timeSlot && String(apt.masterId) === String(masterId))
   }
 
   const displayedMasters = selectedMaster === "all" ? masters : masters.filter((m) => m.id === selectedMaster)
+
+  const statsScopeLabel =
+    selectedMaster === "all"
+      ? "Статистика: все мастера"
+      : `Статистика: мастер ${masters.find((m) => m.id === selectedMaster)?.name ?? selectedMaster}`
 
   if (mastersLoading) {
     return (
@@ -219,6 +236,9 @@ export default function AdminPage() {
           <div className="p-4 text-center text-gray-600">Загрузка данных...</div>
         ) : (
           <>
+            {/* Stats Scope */}
+            <div className="mb-3 text-sm text-gray-600 font-medium">{statsScopeLabel}</div>
+
             {/* Stats Cards */}
             <div className="grid grid-cols-3 gap-3 mb-6">
               <Card className="p-4 bg-white">
@@ -329,7 +349,7 @@ export default function AdminPage() {
                       <h3 className="font-bold text-lg mb-4 text-gray-800">{master.name}</h3>
                       <div className="space-y-2">
                         {TIME_SLOTS.map((timeSlot) => {
-                          const appointment = getAppointmentForSlot(timeSlot)
+                          const appointment = getAppointmentForSlot(timeSlot, master.id)
                           return (
                             <div key={timeSlot} className="flex gap-3">
                               <div className="w-16 flex-shrink-0 text-sm font-medium text-gray-600 pt-2">
@@ -393,8 +413,7 @@ export default function AdminPage() {
                             <div key={timeSlot} className="contents">
                               <div className="w-16 text-sm font-medium text-gray-600 pt-2">{timeSlot}</div>
                               {getWeekDays().map((day) => {
-                                const dayAppointments = getAppointmentsForDate(day)
-                                const appointment = dayAppointments.find((apt) => apt.time === timeSlot)
+                                const appointment = getAppointmentForSlot(timeSlot, master.id, day)
                                 return (
                                   <div key={day.toISOString()} className="w-32">
                                     {appointment ? (
@@ -437,7 +456,10 @@ export default function AdminPage() {
                       return <div key={`empty-${index}`} className="aspect-square" />
                     }
 
-                    const dayAppointments = getAppointmentsForDate(day)
+                    const dayAppointments = getAppointmentsForDate(
+                      day,
+                      selectedMaster === "all" ? undefined : selectedMaster,
+                    )
                     const isToday = day.toDateString() === new Date().toDateString()
 
                     return (
@@ -456,9 +478,7 @@ export default function AdminPage() {
                         </div>
                         <div className="space-y-1">
                           {dayAppointments.slice(0, 2).map((appointment) => {
-                            const master = masters.find((m) =>
-                              appointment.clientName.toLowerCase().includes(m.name.toLowerCase()),
-                            )
+                            const master = masters.find((m) => String(m.id) === String(appointment.masterId))
                             const indicatorColor = master ? getMasterIndicatorColor(master.id) : "#999"
 
                             return (
@@ -492,27 +512,71 @@ export default function AdminPage() {
           open={isDialogOpen}
           onOpenChange={(open) => {
             setIsDialogOpen(open)
-            setSelectedAppointment(open ? selectedAppointment : null)
+            if (!open) setSelectedAppointment(null)
           }}
-          onSave={(updatedAppointment) => {
-            const dateKey = updatedAppointment.date || selectedDate.toISOString().split("T")[0]
-            setAppointments({
-              ...appointments,
-              [dateKey]: (appointments[dateKey] || []).map((apt) =>
-                apt.id === updatedAppointment.id ? updatedAppointment : apt,
-              ),
-            })
-            setIsDialogOpen(false)
-            setSelectedAppointment(null)
+          onSave={async (data) => {
+            try {
+              const masterId = selectedAppointment.masterId
+              if (!masterId) {
+                setError("Не удалось определить мастера для записи")
+                return
+              }
+              await updateAppointment(masterId, selectedAppointment.id, data)
+              await reloadData()
+              setIsDialogOpen(false)
+              setSelectedAppointment(null)
+            } catch (err) {
+              console.error("Failed to update appointment:", err)
+              setError("Не удалось сохранить изменения")
+            }
           }}
-          onDelete={(id) => {
-            const dateKey = selectedDate.toISOString().split("T")[0]
-            setAppointments({
-              ...appointments,
-              [dateKey]: (appointments[dateKey] || []).filter((apt) => apt.id !== id),
-            })
-            setIsDialogOpen(false)
-            setSelectedAppointment(null)
+          onComplete={async (id, payment) => {
+            try {
+              const masterId = selectedAppointment.masterId
+              if (!masterId) {
+                setError("Не удалось определить мастера для записи")
+                return
+              }
+              await completeAppointment(masterId, id, payment)
+              await reloadData()
+              setIsDialogOpen(false)
+              setSelectedAppointment(null)
+            } catch (err) {
+              console.error("Failed to complete appointment:", err)
+              setError("Не удалось провести запись")
+            }
+          }}
+          onCancel={async (id) => {
+            try {
+              const masterId = selectedAppointment.masterId
+              if (!masterId) {
+                setError("Не удалось определить мастера для записи")
+                return
+              }
+              await cancelAppointment(masterId, id)
+              await reloadData()
+              setIsDialogOpen(false)
+              setSelectedAppointment(null)
+            } catch (err) {
+              console.error("Failed to cancel appointment:", err)
+              setError("Не удалось отменить запись")
+            }
+          }}
+          onDelete={async (id) => {
+            try {
+              const masterId = selectedAppointment.masterId
+              if (!masterId) {
+                setError("Не удалось определить мастера для записи")
+                return
+              }
+              await deleteAppointment(masterId, id)
+              await reloadData()
+              setIsDialogOpen(false)
+              setSelectedAppointment(null)
+            } catch (err) {
+              console.error("Failed to delete appointment:", err)
+              setError("Не удалось удалить запись")
+            }
           }}
         />
       )}
