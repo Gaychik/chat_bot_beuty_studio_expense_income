@@ -14,6 +14,7 @@ export type Appointment = {
     card: number
   }
   date?: string
+  masterId?: string
 }
 
 export type Master = {
@@ -31,12 +32,23 @@ export function setMasterId(id: string | null) {
     else localStorage.removeItem('master_id');
 }
 
+export function getMasterRole(): string | null {
+  return localStorage.getItem('master_role');
+}
+
+export function setMasterRole(role: string | null) {
+  if (role) localStorage.setItem('master_role', role);
+  else localStorage.removeItem('master_role');
+}
+
 export async function getMasters(): Promise<Master[]> {
   
     const response = await fetch(`${API_URL}/api/masters`);
 
        if (response.status === 401) {
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('master_id');
+        localStorage.removeItem('master_role');
         window.location.reload(); // Или другая логика перенаправления
         throw new Error("Unauthorized");
     }
@@ -82,8 +94,10 @@ async function authenticatedFetch(url: string, options: RequestInit = {}): Promi
     
     // Обработка 401 ошибки
     if (response.status === 401) {
-        // Удаляем недействительный токен
+        // Удаляем недействительный токен и данные мастера
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('master_id');
+        localStorage.removeItem('master_role');
         // Перезагружаем страницу или перенаправляем на страницу входа
         window.location.reload();
         throw new Error("Unauthorized");
@@ -195,6 +209,7 @@ export async function getAppointmentsRange(
 export async function getStatsForRange(
   startDate: string,
   endDate: string,
+  masterId?: string,
 ): Promise<{
   totalAppointments: number
   completedAppointments: number
@@ -203,6 +218,7 @@ export async function getStatsForRange(
   const url = new URL(`${API_URL}/api/stats/range`);
   url.searchParams.append("start_date", startDate);
   url.searchParams.append("end_date", endDate);
+  if (masterId) url.searchParams.append("master_id", masterId);
 
   const response = await authenticatedFetch(url.toString());
   
