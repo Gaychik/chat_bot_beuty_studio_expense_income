@@ -21,6 +21,12 @@ export type Master = {
   id: string
   name: string
   color: string
+  colors?: {  // добавляем поле с готовыми цветовыми значениями
+    background: string
+    indicator: string
+    border: string
+    name: string
+  }
   role?: string 
 }
 
@@ -228,45 +234,25 @@ export async function getStatsForRange(
 
 
 // Генерировать уникальный цвет фона для мастера на основе его ID
-export function getMasterBackgroundColor(masterId: string): string {
-  let hash = 0
-  for (let i = 0; i < masterId.length; i++) {
-    const char = masterId.charCodeAt(i)
-    hash = (hash << 5) - hash + char
-    hash = hash & hash
+export function getMasterBackgroundColor(master: Master | string): string {
+  // Если передан объект мастера с готовыми цветами, используем их
+  if (typeof master !== 'string' && master.colors && master.colors.background) {
+    return master.colors.background;
   }
-
-  const hue = Math.abs(hash) % 360
-  // Возвращаем светлый HSL цвет для фона
-  return `hsl(${hue}, 80%, 85%)`
 }
 
-// Генерировать яркий цвет для точек/индикаторов
-export function getMasterIndicatorColor(masterId: string): string {
-  let hash = 0
-  for (let i = 0; i < masterId.length; i++) {
-    const char = masterId.charCodeAt(i)
-    hash = (hash << 5) - hash + char
-    hash = hash & hash
+export function getMasterIndicatorColor(master: Master | string): string {
+  // Если передан объект мастера с готовыми цветами, используем их
+  if (typeof master !== 'string' && master.colors && master.colors.indicator) {
+    return master.colors.indicator;
   }
-
-  const hue = Math.abs(hash) % 360
-  // Возвращаем яркий HSL цвет для точек
-  return `hsl(${hue}, 100%, 45%)`
 }
 
-// Генерировать пограничный цвет для левой рамки
-export function getMasterBorderColor(masterId: string): string {
-  let hash = 0
-  for (let i = 0; i < masterId.length; i++) {
-    const char = masterId.charCodeAt(i)
-    hash = (hash << 5) - hash + char
-    hash = hash & hash
+export function getMasterBorderColor(master: Master | string): string {
+  // Если передан объект мастера с готовыми цветами, используем их
+  if (typeof master !== 'string' && master.colors && master.colors.border) {
+    return master.colors.border;
   }
-
-  const hue = Math.abs(hash) % 360
-  // Возвращаем средний HSL цвет для рамки
-  return `hsl(${hue}, 85%, 55%)`
 }
 
 
@@ -377,3 +363,18 @@ export async function getWeekAppointments(): Promise<Appointment[]> {
 
 
 
+export async function updateMasterName(name: string) {
+  const response = await fetch('/api/update-name', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Ошибка обновления имени')
+  }
+
+  return response.json()
+}

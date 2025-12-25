@@ -334,8 +334,8 @@ export default function AdminPage() {
             {viewMode === "day" && (
               <div className="space-y-4">
                 {displayedMasters.map((master) => {
-                  const backgroundColor = getMasterBackgroundColor(master.id)
-                  const borderColor = getMasterBorderColor(master.id)
+                  const backgroundColor = getMasterBackgroundColor(master)
+                  const borderColor = getMasterBorderColor(master)
 
                   return (
                     <Card
@@ -383,8 +383,8 @@ export default function AdminPage() {
             {viewMode === "week" && (
               <div className="space-y-4">
                 {displayedMasters.map((master) => {
-                  const backgroundColor = getMasterBackgroundColor(master.id)
-                  const borderColor = getMasterBorderColor(master.id)
+                  const backgroundColor = getMasterBackgroundColor(master)
+                  const borderColor = getMasterBorderColor(master)
 
                   return (
                     <Card
@@ -479,7 +479,7 @@ export default function AdminPage() {
                         <div className="space-y-1">
                           {dayAppointments.slice(0, 2).map((appointment) => {
                             const master = masters.find((m) => String(m.id) === String(appointment.masterId))
-                            const indicatorColor = master ? getMasterIndicatorColor(master.id) : "#999"
+                            const indicatorColor = master ? getMasterIndicatorColor(master) : "#999"
 
                             return (
                               <div key={appointment.id} className="flex items-center gap-1">

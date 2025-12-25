@@ -5,6 +5,7 @@ import { Calendar, LayoutGrid, Plus, Users } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
   type Appointment,
   type Master,
@@ -154,6 +155,21 @@ export default function HomePage() {
             >
               <Calendar className="mr-2 h-6 w-6" />
               Мое расписание
+            </Button>
+          </Link>
+          
+
+          {/* Существующие кнопки */}
+          <Link href="/profile" className="block">
+            <Button
+              variant="outline"
+              className="w-full h-16 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 text-lg font-semibold bg-transparent"
+            >
+              <Avatar className="mr-2 h-6 w-6">
+                <AvatarImage src="/path/to/avatar.jpg" alt="Мастер" />
+                <AvatarFallback>М</AvatarFallback>
+              </Avatar>
+              Профиль
             </Button>
           </Link>
 
