@@ -10,7 +10,8 @@ load_dotenv()
 # Конфигурация
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEB_APP_URL = os.getenv("WEB_APP_URL")
-
+ADMIN_IDS = [int(id) for id in os.getenv("ADMIN_IDS").split(",")] if os.getenv("ADMIN_IDS") else []
+BACKEND_APP_URL = os.getenv("BACKEND_APP_URL")
 
 
 async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -34,27 +35,27 @@ async def view_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    try:
-        response = requests.get(f"{BACKEND_URL}/api/masters")
-        masters = response.json()
-        
-        keyboard = []
-        for master in masters:
-            keyboard.append([
-                InlineKeyboardButton(
-                    f"👤 {master['name']}", 
-                    callback_data=f"master_{master['id']}"
-                )
-            ])
-        keyboard.append([InlineKeyboardButton("◀️ Назад", callback_data="admin_menu")])
-        
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
-            "👥 Выберите мастера для просмотра записей:",
-            reply_markup=reply_markup
-        )
-    except Exception as e:
-        await query.edit_message_text(f"❌ Ошибка: {str(e)}")
+  
+    response = requests.get(f"{BACKEND_APP_URL}/api/masters")
+    
+    masters = response.json()
+    
+    keyboard = []
+    for master in masters:
+        keyboard.append([
+            InlineKeyboardButton(
+                f"👤 {master['name']}", 
+                callback_data=f"master_{master['id']}"
+            )
+        ])
+    keyboard.append([InlineKeyboardButton("◀️ Назад", callback_data="admin_menu")])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(
+        "👥 Выберите мастера для просмотра записей:",
+        reply_markup=reply_markup
+    )
+ 
 
 async def view_master_appointments(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Показать записи конкретного мастера"""
@@ -64,7 +65,7 @@ async def view_master_appointments(update: Update, context: ContextTypes.DEFAULT
     master_id = query.data.split("_")[1]
     
     try:
-        response = requests.get(f"{BACKEND_URL}/api/bot/masters/{master_id}/appointments")
+        response = requests.get(f"{BACKEND_APP_URL}/api/bot/masters/{master_id}/appointments")
         data = response.json()
         
         master = data["master"]
@@ -116,8 +117,9 @@ async def view_cash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     try:
-        response = requests.get(f"{BACKEND_URL}/api/bot/cash-register")
+        response = requests.get(f"{BACKEND_APP_URL}/api/bot/cash-register")
         data = response.json()
+        print(data)
         
         message = f"💰 Касса на {format_date(data['date'])}\n\n"
         message += f"📊 Общая выручка: {data['total']['total']:.2f}₽\n"
@@ -148,7 +150,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
      """Обработчик команды /start"""
      user = update.effective_user
      chat_id = update.effective_chat.id
-    
+     print(user)
     # Проверяем, является ли пользователь админом
      if chat_id in ADMIN_IDS:
         await admin_menu(update, context)
