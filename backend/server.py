@@ -727,6 +727,69 @@ async def register_master(
     }
 
 
+@app.get("/api/master/profile")
+async def get_master_profile(
+    auth_data: dict = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    master_id = auth_data.get("master_id")
+    if not master_id:
+        raise HTTPException(status_code=401, detail="Мастер не найден в токене")
+
+    master = db.query(MasterDB).filter(MasterDB.id == master_id).first()
+    if not master:
+        raise HTTPException(status_code=404, detail="Мастер не найден")
+
+    master_colors = get_master_colors(master.color)
+
+    return {
+        "id": str(master.id),
+        "name": master.name,
+        "color": master.color,
+        "colors": master_colors,
+        "role": master.role,
+        "avatar": master.avatar
+    }
+
+@app.post("/api/master/avatar")
+async def update_master_avatar(
+    request: dict,
+    auth_data: dict = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    master_id = auth_data.get("master_id")
+    if not master_id:
+        raise HTTPException(status_code=401, detail="Мастер не найден в токене")
+
+    avatar = request.get("avatar")
+    if avatar is None:
+        raise HTTPException(status_code=400, detail="Поле avatar не указано")
+
+    master = db.query(MasterDB).filter(MasterDB.id == master_id).first()
+    if not master:
+        raise HTTPException(status_code=404, detail="Мастер не найден")
+
+    master.avatar = avatar
+
+    try:
+        db.commit()
+        db.refresh(master)
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Ошибка обновления аватара")
+
+    master_colors = get_master_colors(master.color)
+
+    return {
+        "id": str(master.id),
+        "name": master.name,
+        "color": master.color,
+        "colors": master_colors,
+        "role": master.role,
+        "avatar": master.avatar
+    }
+
+
 
 @app.post("/api/update-name")
 async def update_master_name(
