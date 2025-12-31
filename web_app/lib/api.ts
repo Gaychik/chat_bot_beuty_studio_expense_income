@@ -364,16 +364,14 @@ export async function getWeekAppointments(): Promise<Appointment[]> {
 
 
 export async function updateMasterName(name: string) {
-  const response = await fetch('/api/update-name', {
+  const response = await authenticatedFetch(`${API_URL}/api/update-name`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify({ name }),
-  })
+  });
 
   if (!response.ok) {
-    throw new Error('Ошибка обновления имени')
+     const text = await response.text();
+     throw new Error(text || 'Ошибка обновления имени');
   }
 
   return response.json()
