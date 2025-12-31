@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { MasterGreeting } from '@/components/master-greeting'
 import {
   type Appointment,
   type Master,
@@ -117,6 +118,7 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="p-6 space-y-6 max-w-md mx-auto">
+         <MasterGreeting master={currentMaster} loading={loading} />
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-4">
           <Card className="p-4 bg-white border-pink-200">

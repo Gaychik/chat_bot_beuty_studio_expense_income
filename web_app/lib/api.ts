@@ -28,6 +28,7 @@ export type Master = {
     name: string
   }
   role?: string 
+  avatar?: string | null
 }
 
 export function getMasterId(): string | null {
@@ -375,4 +376,29 @@ export async function updateMasterName(name: string) {
   }
 
   return response.json()
+}
+
+export async function getMasterProfile(): Promise<Master> {
+  const response = await authenticatedFetch(`${API_URL}/api/master/profile`);
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Ошибка получения профиля мастера');
+  }
+
+  return response.json();
+}
+
+export async function updateMasterAvatar(avatar: string): Promise<Master> {
+  const response = await authenticatedFetch(`${API_URL}/api/master/avatar`, {
+    method: 'POST',
+    body: JSON.stringify({ avatar }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Ошибка обновления аватара');
+  }
+
+  return response.json();
 }
