@@ -56,7 +56,7 @@ export async function getMasters(): Promise<Master[]> {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('master_id');
         localStorage.removeItem('master_role');
-        window.location.reload(); // Или другая логика перенаправления
+        window.location.href = '/';
         throw new Error("Unauthorized");
     }
     if (!response.ok) throw new Error("Failed to fetch masters");
@@ -105,8 +105,8 @@ async function authenticatedFetch(url: string, options: RequestInit = {}): Promi
         localStorage.removeItem('auth_token');
         localStorage.removeItem('master_id');
         localStorage.removeItem('master_role');
-        // Перезагружаем страницу или перенаправляем на страницу входа
-        window.location.reload();
+        // Перенаправляем на страницу входа вместо перезагрузки
+        window.location.href = '/';
         throw new Error("Unauthorized");
     }
     

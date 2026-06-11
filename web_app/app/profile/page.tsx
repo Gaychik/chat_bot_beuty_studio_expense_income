@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { getMasterProfile, updateMasterAvatar, updateMasterName, type Master } from '@/lib/api'
+import { getMasterProfile, updateMasterAvatar, updateMasterName, type Master, getAuthToken } from '@/lib/api'
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [name, setName] = useState('')
   const [avatar, setAvatar] = useState<string | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -18,6 +20,13 @@ export default function ProfilePage() {
   useEffect(() => {
     async function loadProfile() {
       try {
+        // Проверяем наличие токена
+        const token = getAuthToken()
+        if (!token) {
+          router.push('/')
+          return
+        }
+
         const profile: Master = await getMasterProfile()
         setName(profile.name ?? '')
         setAvatar(profile.avatar ?? null)
